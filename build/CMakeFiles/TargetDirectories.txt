@@ -1,0 +1,14 @@
+/Users/renzo/Coding/STDISCM/p1_threads/build/CMakeFiles/edit_cache.dir
+/Users/renzo/Coding/STDISCM/p1_threads/build/CMakeFiles/rebuild_cache.dir
+/Users/renzo/Coding/STDISCM/p1_threads/build/variant1_immediate_range/CMakeFiles/variant1.dir
+/Users/renzo/Coding/STDISCM/p1_threads/build/variant1_immediate_range/CMakeFiles/edit_cache.dir
+/Users/renzo/Coding/STDISCM/p1_threads/build/variant1_immediate_range/CMakeFiles/rebuild_cache.dir
+/Users/renzo/Coding/STDISCM/p1_threads/build/variant2_deferred_range/CMakeFiles/variant2.dir
+/Users/renzo/Coding/STDISCM/p1_threads/build/variant2_deferred_range/CMakeFiles/edit_cache.dir
+/Users/renzo/Coding/STDISCM/p1_threads/build/variant2_deferred_range/CMakeFiles/rebuild_cache.dir
+/Users/renzo/Coding/STDISCM/p1_threads/build/variant3_immediate_divisibility/CMakeFiles/variant3.dir
+/Users/renzo/Coding/STDISCM/p1_threads/build/variant3_immediate_divisibility/CMakeFiles/edit_cache.dir
+/Users/renzo/Coding/STDISCM/p1_threads/build/variant3_immediate_divisibility/CMakeFiles/rebuild_cache.dir
+/Users/renzo/Coding/STDISCM/p1_threads/build/variant4_deferred_divisibility/CMakeFiles/variant4.dir
+/Users/renzo/Coding/STDISCM/p1_threads/build/variant4_deferred_divisibility/CMakeFiles/edit_cache.dir
+/Users/renzo/Coding/STDISCM/p1_threads/build/variant4_deferred_divisibility/CMakeFiles/rebuild_cache.dir

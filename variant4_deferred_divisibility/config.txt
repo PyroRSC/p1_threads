@@ -1,0 +1,4 @@
+# Number of worker threads (x)
+threads=4
+# Search for primes from 1 up to this number (y)
+limit=1000

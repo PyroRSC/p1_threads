@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "cpp": {
+      "source": "Mindrally/skills",
+      "sourceType": "github",
+      "skillPath": "cpp/SKILL.md",
+      "computedHash": "7ac555478c4ff6fa4fcdcf1c5a9ea16abb76d97dfbdd86e17784279b330ed6ea"
+    }
+  }
+}
