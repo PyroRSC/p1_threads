@@ -20,20 +20,29 @@ threads=4
 limit=1000
 ```
 
+The file is checked before any thread starts. If anything is wrong, the program names the file and line, explains the problem, and exits with code 1.
+
+- `threads` must be from 1 to 100000 and `limit` from 1 to 18446744073709551614.
+- Values are whole numbers written with digits only: no signs, commas, spaces, decimals or exponents.
+- Each key must appear exactly once, in any order. Keys are lowercase.
+- `#` starts a comment, either on its own line or after a value. Blank lines are ignored.
+- Save the file as UTF-8 (with or without a byte order mark) or ANSI. UTF-16 files are rejected.
+- The config must be a regular file of at most 64 KiB.
+
 ## Build
 
-You need a C++17 compiler.
+You need a C++20 compiler (the divisibility variants use `<barrier>`).
 
 Build one variant (run inside its folder):
 
 ```sh
-g++ -std=c++17 -O2 -pthread main.cpp -o prime
+g++ -std=c++20 -O2 -pthread main.cpp -o prime
 ```
 
 On Windows (MSVC):
 
 ```
-cl /std:c++17 /O2 /EHsc main.cpp /Fe:prime.exe
+cl /std:c++20 /O2 /EHsc main.cpp /Fe:prime.exe
 ```
 
 Or build all four with CMake (run in the project root):

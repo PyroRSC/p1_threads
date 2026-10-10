@@ -43,7 +43,7 @@ void searchRange(unsigned threadId, Range range, std::atomic<std::size_t>& prime
 
 int main(int argc, char* argv[]) {
     try {
-        const Config config = loadConfig(argc > 1 ? argv[1] : "config.txt");
+        const Config config = loadConfig(configPathFromArgs(argc, argv));
         printRunStart("Variant 1: Print immediately | Straight range division", config);
         const Stopwatch stopwatch;
 

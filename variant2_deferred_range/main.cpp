@@ -3,12 +3,14 @@
  * search range.
  *
  * The range [1, y] is cut into x contiguous chunks. Each thread writes the
- * primes it finds into its own private result list (no locking needed).
+ * primes it finds, and when it found each one, into its own private result
+ * list (no locking needed).
  * Nothing is printed until every thread has been joined; the main thread
  * then prints all results in order.
  */
 #include "utils.hpp"
 
+#include <chrono>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -17,10 +19,15 @@ namespace {
 
 using namespace prime_search;
 
+struct FoundPrime {
+    Number value;
+    std::chrono::system_clock::time_point foundAt;
+};
+
 /// Primes found by one thread, plus when it started and finished.
 struct ThreadResult {
     Range assigned;
-    std::vector<Number> primes;
+    std::vector<FoundPrime> primes;
     std::string startTime;
     std::string endTime;
 };
@@ -29,7 +36,7 @@ void searchRange(Range range, ThreadResult& result) {
     result.startTime = timestamp();
     for (Number n = range.begin; n < range.end; ++n) {
         if (isPrime(n)) {
-            result.primes.push_back(n);
+            result.primes.push_back({n, std::chrono::system_clock::now()});
         }
     }
     result.endTime = timestamp();
@@ -39,7 +46,7 @@ void searchRange(Range range, ThreadResult& result) {
 
 int main(int argc, char* argv[]) {
     try {
-        const Config config = loadConfig(argc > 1 ? argv[1] : "config.txt");
+        const Config config = loadConfig(configPathFromArgs(argc, argv));
         printRunStart("Variant 2: Print after all threads finish | Straight range division",
                       config);
         const Stopwatch stopwatch;
@@ -68,8 +75,9 @@ int main(int argc, char* argv[]) {
             std::cout << threadTag << " assigned: " << result.assigned.begin << " - "
                       << result.assigned.end - 1 << " | started [" << result.startTime
                       << "] finished [" << result.endTime << "]\n";
-            for (const Number prime : result.primes) {
-                std::cout << "  " << threadTag << " found prime " << prime << '\n';
+            for (const auto& [value, foundAt] : result.primes) {
+                std::cout << "  [" << formatTimestamp(foundAt) << "] " << threadTag
+                          << " found prime " << value << '\n';
             }
             primeCount += result.primes.size();
         }

@@ -5,12 +5,16 @@
  * Candidates 2..y are checked one at a time (linear search). For each
  * candidate n, the divisors [2, sqrt(n)] are divided among x threads; each
  * thread tests its share and stops early if any thread finds a divisor.
- * The main thread joins all x threads, records the verdict, and moves on.
- * Nothing is printed until the whole search is complete.
+ * The x threads are created once and reused for every candidate: a barrier
+ * makes all of them finish n before any starts n + 1. The barrier's
+ * completion step records the verdict, and nothing is printed until every
+ * thread has been joined.
  */
 #include "utils.hpp"
 
 #include <atomic>
+#include <barrier>
+#include <chrono>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -19,34 +23,69 @@ namespace {
 
 using namespace prime_search;
 
-/// Shared state for the x threads cooperating on one candidate.
-struct CandidateCheck {
-    CandidateCheck(Number value, unsigned threadCount) : candidate(value), remaining(threadCount) {}
-
-    const Number candidate;
-    std::atomic<bool> divisorFound{false};
-    std::atomic<unsigned> remaining;  ///< threads that have not finished yet
-    unsigned confirmedBy = 0;         ///< written only by the last thread to finish
-};
-
 struct FoundPrime {
     Number value;
     unsigned confirmedBy;
+    std::chrono::system_clock::time_point foundAt;
 };
 
-void testDivisors(unsigned threadId, Range divisors, CandidateCheck& check) {
-    for (Number d = divisors.begin; d < divisors.end; ++d) {
-        if (check.divisorFound.load(std::memory_order_relaxed)) {
-            break;  // another thread already proved n composite
+/// State shared by the x threads. `candidate`, `done` and `primes` are
+/// changed only in the barrier's completion step, while every thread waits.
+struct SharedSearch {
+    SharedSearch(Number searchLimit, unsigned threads)
+        : limit(searchLimit), threadCount(threads), remaining(threads) {}
+
+    const Number limit;
+    const unsigned threadCount;
+    // 1 is not prime, so the linear search starts at 2.
+    Number candidate = 2;
+    bool done = limit < candidate;
+    std::vector<FoundPrime> primes;
+    std::atomic<bool> divisorFound{false};
+    std::atomic<unsigned> remaining;  ///< threads that have not finished this candidate
+    unsigned lastToFinish = 0;        ///< written only by the last thread to finish
+};
+
+/// Barrier completion step: runs once per candidate, after every thread arrives.
+struct FinishCandidate {
+    SharedSearch* search;
+
+    void operator()() noexcept {
+        SharedSearch& s = *search;
+        if (!s.divisorFound.load()) {
+            s.primes.push_back({s.candidate, s.lastToFinish, std::chrono::system_clock::now()});
         }
-        if (check.candidate % d == 0) {
-            check.divisorFound.store(true);
-            break;
+        s.divisorFound.store(false);
+        s.remaining.store(s.threadCount);
+        if (s.candidate == s.limit) {
+            s.done = true;
+        } else {
+            ++s.candidate;
         }
     }
-    // Record which thread delivered the final verdict (read after join).
-    if (check.remaining.fetch_sub(1) == 1) {
-        check.confirmedBy = threadId;
+};
+
+using CandidateBarrier = std::barrier<FinishCandidate>;
+
+void testDivisors(unsigned threadId, SharedSearch& search, CandidateBarrier& barrier) {
+    while (!search.done) {
+        const Number n = search.candidate;
+        const Range divisors =
+            splitRange({2, integerSqrt(n) + 1}, search.threadCount, threadId - 1);
+        for (Number d = divisors.begin; d < divisors.end; ++d) {
+            if (search.divisorFound.load(std::memory_order_relaxed)) {
+                break;  // another thread already proved n composite
+            }
+            if (n % d == 0) {
+                search.divisorFound.store(true);
+                break;
+            }
+        }
+        // Record which thread delivered the final verdict.
+        if (search.remaining.fetch_sub(1) == 1) {
+            search.lastToFinish = threadId;
+        }
+        barrier.arrive_and_wait();
     }
 }
 
@@ -54,38 +93,30 @@ void testDivisors(unsigned threadId, Range divisors, CandidateCheck& check) {
 
 int main(int argc, char* argv[]) {
     try {
-        const Config config = loadConfig(argc > 1 ? argv[1] : "config.txt");
+        const Config config = loadConfig(configPathFromArgs(argc, argv));
         printRunStart("Variant 4: Print after all threads finish | Threads split divisibility test",
                       config);
         const Stopwatch stopwatch;
 
-        std::vector<FoundPrime> primes;
-        // 1 is not prime, so the linear search starts at 2.
-        for (Number n = 2; n <= config.limit; ++n) {
-            const Range divisors{2, integerSqrt(n) + 1};
-            CandidateCheck check(n, config.threadCount);
+        SharedSearch search(config.limit, config.threadCount);
+        CandidateBarrier barrier(config.threadCount, FinishCandidate{&search});
 
-            ThreadGroup workers;
-            workers.reserve(config.threadCount);
-            for (unsigned i = 0; i < config.threadCount; ++i) {
-                workers.spawn(testDivisors, i + 1, splitRange(divisors, config.threadCount, i),
-                              std::ref(check));
-            }
-            workers.joinAll();
-
-            if (!check.divisorFound.load()) {
-                primes.push_back({n, check.confirmedBy});
-            }
+        ThreadGroup workers;
+        workers.reserve(config.threadCount);
+        for (unsigned i = 0; i < config.threadCount; ++i) {
+            workers.spawn(testDivisors, i + 1, std::ref(search), std::ref(barrier));
         }
+        workers.joinAll();
         const double searchMs = stopwatch.elapsedMs();
 
-        for (const auto& [value, confirmedBy] : primes) {
-            std::cout << "Thread " << confirmedBy << " found prime " << value << '\n';
+        for (const auto& [value, confirmedBy, foundAt] : search.primes) {
+            std::cout << "[" << formatTimestamp(foundAt) << "] Thread " << confirmedBy
+                      << " found prime " << value << '\n';
         }
 
         std::cout << " Search time (until all threads joined): " << std::fixed
                   << std::setprecision(3) << searchMs << " ms\n";
-        printRunEnd(primes.size(), stopwatch.elapsedMs());
+        printRunEnd(search.primes.size(), stopwatch.elapsedMs());
     } catch (const std::exception& error) {
         std::cerr << "Error: " << error.what() << '\n';
         return 1;

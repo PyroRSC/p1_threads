@@ -1,0 +1,24 @@
+{
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "logical_cpus": 16,
+  "os": "Linux-6.18.50-2-lts-x86_64-with-glibc2.44",
+  "compiler": "c++ (GCC) 16.2.1 20260810",
+  "thread_counts": [
+    1,
+    2,
+    4,
+    8,
+    16,
+    32,
+    64,
+    128
+  ],
+  "limits": [
+    10000,
+    100000,
+    1000000,
+    10000000
+  ],
+  "max_divisibility_limit": 1000000,
+  "date": "2026-10-10T00:31:15"
+}
